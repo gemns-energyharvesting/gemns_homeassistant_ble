@@ -1,20 +1,13 @@
 # Gemns™ Home Assistant Integration
 
-A comprehensive Home Assistant integration for managing Gemns™ battery-less devices including BLE and Zigbee sensors and switches.
+A comprehensive Home Assistant integration for managing Gemns™ battery-less BLE devices.
 
 ## Features
 
 ### 🔌 **BLE Support**
-- **BLE (Bluetooth Low Energy)** - V0 manual and V1 automatic discovery modes
+- **BLE (Bluetooth Low Energy)** - Automatic discovery modes
 - **Using Home Assistant Built-in BLE Driver** - Uses built-in configuration of BLE from Home Assistant
 
-### 📱 **Device Types**
-- **Sensors**: Leak sensors, vibration sensors
-- **Switches**: On/off switches, door switches, toggle switches
-
-### 🎛️ **Control Features**
-- **BLE Toggles** - Enable/disable protocols via UI
-- **Device Status Tracking** - Real-time device status monitoring
 
 ## Installation
 
@@ -30,28 +23,6 @@ A comprehensive Home Assistant integration for managing Gemns™ battery-less de
 3. Go to **Settings** → **Devices & Services** → **Integrations**
 4. Click **+ Add Integration** and search for "Gemns IoT"
 
-## Configuration
-
-### UI Configuration (Recommended)
-1. Go to **Settings** → **Devices & Services** → **Integrations**
-2. Click on **Gemns IoT** integration
-3. Configure the following settings:
-   - **MQTT Broker URL**: Your MQTT broker address
-   - **MQTT Username/Password**: Optional authentication
-   - **Enable BLE**: Toggle BLE functionality
-   - **Scan Interval**: Device discovery frequency
-   - **Heartbeat Interval**: Connection monitoring frequency
-
-### YAML Configuration
-```yaml
-# Example configuration.yaml
-gemns_iot:
-  mqtt_broker: "mqtt://homeassistant:1883"
-  enable_ble: true
-  enable_zigbee: true
-  scan_interval: 0.02
-  heartbeat_interval: 10.0
-```
 
 ## Usage
 
@@ -69,32 +40,11 @@ gemns_iot:
    - **Category**: Sensor, Switch, Light, Door, or Toggle
    - **BLE Discovery Mode**: V1 Auto (for BLE devices)
 
-### Controlling Devices
-
-#### Sensors
-- **Leak Sensors**: Show leak detection status
-- **Vibration Sensors**: Display motion/vibration data
-
-#### Switches
-- **On/Off Switches**: Basic on/off control
-- **Door Switches**: Door open/close status
-- **Toggle Switches**: State-based switching
-
-### BLE Management
-
-#### Protocol Toggles
-- Use the integration's configuration options to enable/disable BLE
-- Toggles are available in the integration settings
-- Changes take effect immediately
-
 ## Device Status
 
 ### Status Types
 - **Connected**: Device is actively communicating
-- **Offline**: Device is not responding (automatic after 5 minutes)
-- **Connecting**: Device is in pairing mode
-- **Identified**: Device is recognized but not fully paired
-- **Paired**: Device is fully paired and managed
+- **Offline**: Device is not responding
 - **Error**: Device has encountered an error
 
 ## Troubleshooting
@@ -103,7 +53,6 @@ gemns_iot:
 
 #### Integration Not Loading
 - Check that all required files are in the correct directory
-- Verify MQTT broker is accessible
 - Check Home Assistant logs for error messages
 
 #### Devices Not Appearing
@@ -136,7 +85,6 @@ logger:
 
 ### Documentation
 - [Home Assistant Integration Documentation](https://developers.home-assistant.io/)
-- [MQTT Integration Guide](https://www.home-assistant.io/integrations/mqtt/)
 - [Custom Component Development](https://developers.home-assistant.io/docs/creating_component_index/)
 
 ### Issues and Feature Requests
