@@ -17,6 +17,8 @@ import voluptuous as vol
 
 from .const import DOMAIN, BLE_COMPANY_ID, CONF_DECRYPTION_KEY, CONF_DEVICE_NAME, CONF_DEVICE_TYPE
 
+from .decryption_key import parse_decryption_key
+
 _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
@@ -70,13 +72,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             
             # Validate decryption key format
             try:
-                bytes.fromhex(decryption_key)
-                if len(decryption_key) != 32:  # 16 bytes = 32 hex chars
-                    return self.async_show_form(
-                        step_id="user",
-                        data_schema=STEP_USER_DATA_SCHEMA,
-                        errors={"base": "invalid_decryption_key_length"},
-                    )
+                key_hex = parse_decryption_key(decryption_key)
             except ValueError:
                 return self.async_show_form(
                     step_id="user",
@@ -94,7 +90,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_NAME: name,
                     CONF_ADDRESS: address,
-                    CONF_DECRYPTION_KEY: decryption_key,
+                    CONF_DECRYPTION_KEY: key_hex,
                     CONF_DEVICE_NAME: device_name,
                     CONF_DEVICE_TYPE: device_type,
                 },
@@ -104,7 +100,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             description_placeholders={
-                "message": "Manually provision a Gemns™ IoT device by entering its MAC address and decryption key.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nDecryption Key: 32-character hex string (16 bytes)",
+                "message": "Manually provision a Gemns™ IoT device by entering its MAC address and decryption key.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nDecryption Key: 16 decimal numbers from 0 to 255 separated by single spaces. Example: 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255",
                 "integration_icon": "/local/custom_components/gemns/static/icon.png"
             }
         )
@@ -186,7 +182,14 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle user configuration step with device-specific info."""
-        if user_input is None:
+        errors = {}
+        if user_input is not None:
+            try:
+                key_hex = parse_decryption_key(user_input[CONF_DECRYPTION_KEY])
+            except ValueError:
+                errors["base"] = "invalid_decryption_key_format"
+
+        if user_input is None or errors:
             device_info = self._selected_device
             device_type = device_info.get("device_type", "unknown")
             device_name = device_info.get("device_name", "Gemns™ IoT Device")
@@ -209,6 +212,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id="user_config",
                 data_schema=vol.Schema(schema),
+                errors=errors,
                 description_placeholders={
                     "message": descriptions.get(device_type, descriptions["unknown"]),
                     "device_name": device_name,
@@ -241,7 +245,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             data={
                 CONF_NAME: device_name,
                 CONF_ADDRESS: discovery_info.address,
-                CONF_DECRYPTION_KEY: user_input[CONF_DECRYPTION_KEY],
+                CONF_DECRYPTION_KEY: key_hex,
                 CONF_DEVICE_NAME: device_name,
                 CONF_DEVICE_TYPE: device_type,
             },

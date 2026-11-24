@@ -1,10 +1,36 @@
 {
   "config": {
     "step": {
+      "ble": {
+        "title": "Gemns™ IoT BLE Setup",
+        "description": "Enter the decryption key for your Gemns™ IoT device.",
+        "data_description": {
+          "decryption_key": "Enter 16 decimal numbers from 0 to 255 separated by single spaces, for example 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255."
+        },
+        "data": {
+          "decryption_key": "Decryption key",
+          "device_name": "Device name",
+          "device_type": "Device type"
+        }
+      },
+      "user_config": {
+        "title": "Configure {device_name}",
+        "description": "{message}",
+        "data_description": {
+          "decryption_key": "Enter 16 decimal numbers from 0 to 255 separated by single spaces, for example 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255."
+        },
+        "data": {
+          "decryption_key": "Decryption key"
+        }
+      },
       "user": {
         "title": "Gemns™ IoT Configuration",
         "description": "Configure your Gemns™ IoT integration",
+        "data_description": {
+          "decryption_key": "Enter 16 decimal numbers from 0 to 255 separated by single spaces, for example 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255."
+        },
         "data": {
+          "decryption_key": "Decryption key",
           "mqtt_broker": "MQTT Broker URL",
           "mqtt_username": "MQTT Username (optional)",
           "mqtt_password": "MQTT Password (optional)",
@@ -16,6 +42,7 @@
       }
     },
     "error": {
+      "invalid_decryption_key_format": "Enter 16 decimal numbers from 0 to 255 separated by single spaces.",
       "invalid_mqtt_broker": "Invalid MQTT broker URL. Must start with mqtt:// or mqtts://"
     },
     "abort": {

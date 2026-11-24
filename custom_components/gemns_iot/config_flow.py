@@ -26,6 +26,8 @@ from .const import (
     CONF_DEVICE_TYPE,
 )
 
+from .decryption_key import parse_decryption_key
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -147,22 +149,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             
             # Validate decryption key format
             try:
-                bytes.fromhex(decryption_key)
-                if len(decryption_key) != 32:  # 16 bytes = 32 hex chars
-                    return self.async_show_form(
-                        step_id="ble",
-                        data_schema=vol.Schema({
-                            vol.Required(CONF_DECRYPTION_KEY, default=decryption_key): str,
-                            vol.Optional(CONF_DEVICE_NAME, default=device_name): str,
-                            vol.Optional(CONF_DEVICE_TYPE, default="4"): vol.In({
-                                "1": "Button",
-                                "2": "Vibration Monitor", 
-                                "3": "Two Way Switch",
-                                "4": "Leak Detector"
-                            }),
-                        }),
-                        errors={"base": "invalid_decryption_key_length"},
-                    )
+                key_hex = parse_decryption_key(decryption_key)
             except ValueError:
                 return self.async_show_form(
                     step_id="ble",
@@ -195,7 +182,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_NAME: name,
                     CONF_ADDRESS: address,  # This will be updated by Bluetooth integration
-                    CONF_DECRYPTION_KEY: decryption_key,
+                    CONF_DECRYPTION_KEY: key_hex,
                     CONF_DEVICE_NAME: device_name,
                     CONF_DEVICE_TYPE: device_type,
                 },
@@ -214,7 +201,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }),
             }),
             description_placeholders={
-                "message": "Gemns™ IoT BLE Setup\n\nEnter your decryption key to complete setup.\n\nThe MAC address will be automatically detected when your Gemns™ IoT device is discovered.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nDecryption Key: 32-character hex string (16 bytes)",
+                "message": "Gemns™ IoT BLE Setup\n\nEnter your decryption key to complete setup.\n\nThe MAC address will be automatically detected when your Gemns™ IoT device is discovered.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nDecryption Key: 16 decimal numbers from 0 to 255 separated by single spaces. Example: 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255",
                 "integration_icon": "/local/custom_components/gemns/static/icon.png"
             }
         )
