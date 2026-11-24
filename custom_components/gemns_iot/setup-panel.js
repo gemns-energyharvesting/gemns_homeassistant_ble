@@ -23,7 +23,7 @@ class GemnsSetupPanel extends HTMLElement {
           </select>
         </label>
         <label>Decryption key
-          <input name="decryption_key" type="password" required autocomplete="off"
+          <input name="decryption_key" type="text" required autocomplete="off" spellcheck="false"
             aria-describedby="key-hint">
         </label>
         <p id="key-hint">Enter 16 decimal numbers from 0 to 255 separated by single spaces.</p>
