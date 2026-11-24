@@ -90,7 +90,9 @@ class GemnsSetupPanel extends HTMLElement {
         return;
       }
 
-      const value = message.payload?.rawValue;
+      const rawValue = message.payload?.rawValue;
+      const fields = typeof rawValue === "string" ? rawValue.split(",") : [];
+      const value = fields.length === 3 ? fields[1] : rawValue;
       if (!["qr_code", "unknown"].includes(message.payload?.format) ||
           typeof value !== "string" || !this.validKey(value)) {
         this.status.textContent = "This QR code must contain 16 decimal numbers separated by single spaces.";
