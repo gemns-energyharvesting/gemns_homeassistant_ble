@@ -3,7 +3,7 @@
     "step": {
       "ble": {
         "title": "Gemns™ IoT BLE Setup",
-        "description": "Enter the decryption key for your Gemns™ IoT device.",
+        "description": "Enter the decryption key for your Gemns™ IoT device or open [Gemns BLE Setup](/gemns-setup) in the Home Assistant Companion app to scan a QR code.",
         "data_description": {
           "decryption_key": "Enter 16 decimal numbers from 0 to 255 separated by single spaces, for example 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255."
         },

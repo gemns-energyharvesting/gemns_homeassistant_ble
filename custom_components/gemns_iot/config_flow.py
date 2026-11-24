@@ -27,6 +27,7 @@ from .const import (
 )
 
 from .decryption_key import parse_decryption_key
+from .setup_panel import async_register_setup_panel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # and restore the conditional logic in the rest of this method
         
         # Force BLE manual provisioning for now
+        await async_register_setup_panel(self.hass)
         return await self.async_step_ble()
         
         # MQTT OPTION (COMMENTED OUT - TO RE-ENABLE WHEN FIRMWARE IS READY):

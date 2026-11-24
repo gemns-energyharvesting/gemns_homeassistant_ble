@@ -7,11 +7,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import service
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 from .device_management import GemnsDeviceManager
 from .coordinator import GemnsDataCoordinator
 from .ble_coordinator import GemnsBluetoothProcessorCoordinator
+
+from .setup_panel import async_register_setup_panel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +29,12 @@ PLATFORMS: list[Platform] = [
 BLE_PLATFORMS: list[Platform] = [
     Platform.SENSOR,
 ]
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the Gemns setup panel when the integration loads."""
+    await async_register_setup_panel(hass)
+    return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Gemns™ IoT from a config entry."""
