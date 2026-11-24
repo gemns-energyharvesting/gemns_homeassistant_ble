@@ -26,6 +26,33 @@ A comprehensive Home Assistant integration for managing Gemns™ battery-less BL
 
 ## Usage
 
+### Gemns BLE setup panel
+
+Copy `config/www/gemns_iot/setup-panel.js` from this repository to
+`/config/www/gemns_iot/setup-panel.js` in Home Assistant. Add this to
+`configuration.yaml` (or append the list item to an existing `panel_custom` section):
+
+```yaml
+panel_custom:
+  - name: gemns-setup-panel
+    url_path: gemns-setup
+    sidebar_title: Gemns BLE Setup
+    sidebar_icon: mdi:bluetooth
+    module_url: /local/gemns_iot/setup-panel.js
+    require_admin: true
+```
+
+Restart Home Assistant and open **Gemns BLE Setup** from the sidebar. Choose a
+device name and type, then enter the key manually or use **Scan QR code** in
+the Home Assistant Companion app. Select **Add device** to finish.
+
+The QR code must contain the key as plain text, with exactly 16 decimal
+numbers from 0 to 255 separated by single spaces. For example:
+
+```text
+0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255
+```
+
 ### Adding Devices
 
 #### Automatic Discovery
