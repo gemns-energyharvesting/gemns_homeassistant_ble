@@ -2,6 +2,8 @@
 
 import logging
 import re
+from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
 import voluptuous as vol
@@ -10,7 +12,9 @@ from homeassistant.helpers.selector import TextSelector, TextSelectorConfig
 from homeassistant import config_entries
 from homeassistant.components.bluetooth import BluetoothServiceInfo, async_discovered_service_info
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME, CONF_NAME, CONF_ADDRESS
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult, UnknownFlow
+from homeassistant.helpers.event import async_call_later
 
 from .const import (
     CONF_MQTT_BROKER,
@@ -34,6 +38,7 @@ from .decryption_key import parse_decryption_key
 from .setup_panel import async_register_setup_panel
 
 _LOGGER = logging.getLogger(__name__)
+DISCOVERY_TIMEOUT_SECONDS = 120
 
 
 class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -43,7 +48,25 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     
     def __init__(self) -> None:
         """Initialize the config flow."""
-        pass
+        self._cancel_discovery_timeout: Callable[[], None] | None = None
+
+    @callback
+    def async_remove(self) -> None:
+        """Cancel the timer when Home Assistant removes this flow."""
+        if self._cancel_discovery_timeout is not None:
+            self._cancel_discovery_timeout()
+            self._cancel_discovery_timeout = None
+        super().async_remove()
+
+    @callback
+    def _async_expire_discovery(self, _now: datetime) -> None:
+        """Remove the unconfigured device from Discovered."""
+        self._cancel_discovery_timeout = None
+        try:
+            self.hass.config_entries.flow.async_abort(self.flow_id)
+        except UnknownFlow:
+            # A separate setup or ignore action may have already removed it.
+            pass
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -155,7 +178,11 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         self._async_abort_entries_match({CONF_ADDRESS: discovery_info.address.upper()})
         await async_register_setup_panel(self.hass)
-        return await self.async_step_ble()
+        result = await self.async_step_ble()
+        self._cancel_discovery_timeout = async_call_later(
+            self.hass, DISCOVERY_TIMEOUT_SECONDS, self._async_expire_discovery
+        )
+        return result
 
     async def async_step_ble(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Select a BLE device and save its network key."""
@@ -183,6 +210,9 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_DECRYPTION_KEY] = "invalid_decryption_key_format"
 
             if not errors:
+                if self._cancel_discovery_timeout is not None:
+                    self._cancel_discovery_timeout()
+                    self._cancel_discovery_timeout = None
                 await self.async_set_unique_id(address, raise_on_progress=False)
                 self._abort_if_unique_id_configured()
                 self._async_abort_entries_match({CONF_ADDRESS: address})
