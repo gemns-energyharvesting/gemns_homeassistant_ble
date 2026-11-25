@@ -1,11 +1,13 @@
 """Config flow for Gemns™ IoT integration."""
 
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.components.bluetooth import BluetoothServiceInfo, async_discovered_service_info
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME, CONF_NAME, CONF_ADDRESS
 from homeassistant.data_entry_flow import FlowResult
 
@@ -26,6 +28,7 @@ from .const import (
     CONF_DEVICE_TYPE,
 )
 
+from .ble_discovery import advertisement_name, is_gemns_advertisement
 from .decryption_key import parse_decryption_key
 from .setup_panel import async_register_setup_panel
 
@@ -142,71 +145,78 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_ble(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle BLE configuration step - automatic MAC population from beacon."""
-        if user_input is not None:
-            decryption_key = user_input[CONF_DECRYPTION_KEY]
-            device_name = user_input.get(CONF_DEVICE_NAME, "Gemns™ IoT Device")
-            device_type = int(user_input.get(CONF_DEVICE_TYPE, "4"))
-            
-            # Validate decryption key format
-            try:
-                key_hex = parse_decryption_key(decryption_key)
-            except ValueError:
-                return self.async_show_form(
-                    step_id="ble",
-                    data_schema=vol.Schema({
-                        vol.Required(CONF_DECRYPTION_KEY, default=decryption_key): str,
-                        vol.Optional(CONF_DEVICE_NAME, default=device_name): str,
-                        vol.Optional(CONF_DEVICE_TYPE, default="4"): vol.In({
-                            "1": "Button",
-                            "2": "Vibration Monitor", 
-                            "3": "Two Way Switch",
-                            "4": "Leak Detector"
-                        }),
-                    }),
-                    errors={"base": "invalid_decryption_key_format"},
-                )
-            
-            # Generate a unique ID for this config entry
-            # This will be used by the coordinator to identify the device
-            unique_id = f"gemns_ble_{device_name.lower().replace(' ', '_')}"
-            address = "00:00:00:00:00:00"  # Placeholder - will be updated by Bluetooth integration
-            name = "Gemns™ IoT Device"
-            
-            # Set the unique ID for this entry
-            await self.async_set_unique_id(unique_id)
-            self._abort_if_unique_id_configured()
-            
-            # Create the config entry
-            return self.async_create_entry(
-                title=device_name,
-                data={
-                    CONF_NAME: name,
-                    CONF_ADDRESS: address,  # This will be updated by Bluetooth integration
-                    CONF_DECRYPTION_KEY: key_hex,
-                    CONF_DEVICE_NAME: device_name,
-                    CONF_DEVICE_TYPE: device_type,
-                },
-            )
+    async def async_step_bluetooth(self, discovery_info: BluetoothServiceInfo) -> FlowResult:
+        """Open setup for the device that triggered Bluetooth discovery."""
+        if not is_gemns_advertisement(discovery_info):
+            return self.async_abort(reason="not_supported")
+        self._discovered_device = discovery_info
+        await self.async_set_unique_id(discovery_info.address.upper())
+        self._abort_if_unique_id_configured()
+        self._async_abort_entries_match({CONF_ADDRESS: discovery_info.address.upper()})
+        await async_register_setup_panel(self.hass)
+        return await self.async_step_ble()
 
-        return self.async_show_form(
-            step_id="ble",
-            data_schema=vol.Schema({
-                vol.Required(CONF_DECRYPTION_KEY): str,
-                vol.Optional(CONF_DEVICE_NAME): str,
-                vol.Optional(CONF_DEVICE_TYPE, default="4"): vol.In({
-                    "1": "Button",
-                    "2": "Vibration Monitor", 
-                    "3": "Two Way Switch",
-                    "4": "Leak Detector"
-                }),
-            }),
-            description_placeholders={
-                "message": "Gemns™ IoT BLE Setup\n\nEnter your decryption key to complete setup.\n\nThe MAC address will be automatically detected when your Gemns™ IoT device is discovered.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nDecryption Key: 16 decimal numbers from 0 to 255 separated by single spaces. Example: 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255",
-                "integration_icon": "/local/custom_components/gemns/static/icon.png"
+    async def async_step_ble(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Select a BLE device and save its network key."""
+        discovered_device = getattr(self, "_discovered_device", None)
+        devices = {}
+        if discovered_device is not None:
+            devices[discovered_device.address.upper()] = advertisement_name(discovered_device)
+        else:
+            devices = {
+                info.address.upper(): advertisement_name(info)
+                for info in async_discovered_service_info(self.hass, connectable=False)
+                if is_gemns_advertisement(info)
             }
-        )
+        address_options = {address: f"{name} ({address})" for address, name in devices.items()}
+        errors = {}
+        if user_input is not None:
+            address = user_input.get(CONF_ADDRESS, "").strip().upper()
+            if discovered_device is not None or (not address and len(devices) == 1):
+                address = next(iter(devices))
+            if not re.fullmatch(r"(?:[0-9A-F]{2}:){5}[0-9A-F]{2}", address):
+                errors[CONF_ADDRESS] = "invalid_ble_address"
+            try:
+                key_hex = parse_decryption_key(user_input[CONF_DECRYPTION_KEY])
+            except ValueError:
+                errors[CONF_DECRYPTION_KEY] = "invalid_decryption_key_format"
+
+            if not errors:
+                await self.async_set_unique_id(address, raise_on_progress=False)
+                self._abort_if_unique_id_configured()
+                self._async_abort_entries_match({CONF_ADDRESS: address})
+                default_name = devices.get(address, f"Gemns {address.replace(':', '')[-6:]}")
+                device_name = user_input.get(CONF_DEVICE_NAME) or default_name
+                return self.async_create_entry(
+                    title=device_name,
+                    data={
+                        CONF_NAME: default_name,
+                        CONF_ADDRESS: address,
+                        CONF_DECRYPTION_KEY: key_hex,
+                        CONF_DEVICE_NAME: device_name,
+                        CONF_DEVICE_TYPE: int(user_input.get(CONF_DEVICE_TYPE, "4")),
+                    },
+                )
+
+        schema = {
+            vol.Required(CONF_DECRYPTION_KEY): str,
+            vol.Optional(CONF_DEVICE_NAME): str,
+            vol.Optional(CONF_DEVICE_TYPE, default="4"): vol.In({
+                "1": "Button",
+                "2": "Vibration Monitor",
+                "3": "Two Way Switch",
+                "4": "Leak Detector",
+            }),
+        }
+        if discovered_device is None:
+            if len(devices) == 1:
+                schema[vol.Optional(CONF_ADDRESS, default=next(iter(devices)))] = vol.In(address_options)
+            elif devices:
+                schema[vol.Required(CONF_ADDRESS)] = vol.In(address_options)
+            else:
+                schema[vol.Required(CONF_ADDRESS)] = str
+
+        return self.async_show_form(step_id="ble", data_schema=vol.Schema(schema), errors=errors)
 
 
     async def async_step_import(self, import_info: dict[str, Any]) -> FlowResult:

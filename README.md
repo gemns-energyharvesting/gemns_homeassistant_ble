@@ -34,8 +34,9 @@ Gemns**, then follow the **Gemns BLE Setup** link in the setup form. The
 panel also appears in the sidebar for administrators.
 
 In the Home Assistant Companion app, choose a device name and type, then
-select **Scan QR code** or enter the key manually. Select **Add device**
-to finish.
+select **Scan QR code** or enter the **Network key** manually. Select
+**Add device** and choose the Bluetooth device if more than one is found.
+If none is found, enter the device’s Bluetooth MAC address.
 
 The QR code must contain the key as plain text, with exactly 16 decimal
 numbers from 0 to 255 separated by single spaces. For example:

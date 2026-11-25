@@ -15,8 +15,9 @@ from homeassistant.const import CONF_ADDRESS, CONF_NAME
 from homeassistant.core import HomeAssistant
 import voluptuous as vol
 
-from .const import DOMAIN, BLE_COMPANY_ID, CONF_DECRYPTION_KEY, CONF_DEVICE_NAME, CONF_DEVICE_TYPE
+from .const import DOMAIN, CONF_DECRYPTION_KEY, CONF_DEVICE_NAME, CONF_DEVICE_TYPE
 
+from .ble_discovery import advertisement_name, is_gemns_advertisement
 from .decryption_key import parse_decryption_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             device_name = user_input.get(CONF_DEVICE_NAME, name)
             device_type = int(user_input.get(CONF_DEVICE_TYPE, "4"))  # Convert string to int, default to leak detector
             
-            # Validate decryption key format
+            # Validate network key format
             try:
                 key_hex = parse_decryption_key(decryption_key)
             except ValueError:
@@ -100,7 +101,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             description_placeholders={
-                "message": "Manually provision a Gemns™ IoT device by entering its MAC address and decryption key.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nDecryption Key: 16 decimal numbers from 0 to 255 separated by single spaces. Example: 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255",
+                "message": "Manually provision a Gemns™ IoT device by entering its MAC address and network key.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nNetwork key: 16 decimal numbers from 0 to 255 separated by single spaces. Example: 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255",
                 "integration_icon": "/local/custom_components/gemns/static/icon.png"
             }
         )
@@ -253,54 +254,11 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _is_gems_device(self, discovery_info: BluetoothServiceInfo) -> bool:
         """Check if this is a Gemns™ IoT device using new packet format."""
-        # Check manufacturer data for new Company ID
-        if discovery_info.manufacturer_data:
-            for manufacturer_id, data in discovery_info.manufacturer_data.items():
-                if manufacturer_id == BLE_COMPANY_ID and len(data) >= 20:
-                    return True
-        
-        # Check name patterns as fallback
-        name = discovery_info.name or ""
-        if any(pattern in name.upper() for pattern in ["GEMNS", "GEMS"]):
-            return True
-        
-        return False
-    
+        return is_gemns_advertisement(discovery_info)
+
     def _extract_device_info_from_beacon(self, discovery_info: BluetoothServiceInfo) -> tuple[str, str]:
         """Extract device type and name from beacon data."""
         try:
-            # Try to parse manufacturer data to get device type
-            if discovery_info.manufacturer_data:
-                for manufacturer_id, data in discovery_info.manufacturer_data.items():
-                    if manufacturer_id == BLE_COMPANY_ID and len(data) >= 20:
-                        # Try to parse the packet to get device type
-                        try:
-                            from .packet_parser import GemnsPacket
-                            packet = GemnsPacket(data)
-                            if packet.is_valid():
-                                device_type = packet.device_type
-                                
-                                # Map sensor type to device type and name
-                                device_type_map = {
-                                    0: ("legacy", "Legacy Device"),
-                                    1: ("button", "Button"),
-                                    2: ("vibration_sensor", "Vibration Monitor"),
-                                    3: ("two_way_switch", "Two-Way Switch"),
-                                    4: ("leak_detector", "Leak Detector"),
-                                }
-                                
-                                device_type, device_name = device_type_map.get(device_type, ("unknown", "IoT Device"))
-                                
-                                # Generate professional device name
-                                short_address = discovery_info.address.replace(":", "")[-6:].upper()
-                                device_number = int(short_address, 16) % 1000
-                                professional_name = f"Gemns™ IoT {device_name} Unit-{device_number:03d}"
-                                
-                                return device_type, professional_name
-                        except Exception as e:
-                            print(f"Error parsing beacon data: {e}")
-                            pass
-            
             # Fallback: use device name or generate generic name
             device_name = discovery_info.name or "Gemns™ IoT Device"
             if "Gemns" in device_name:
@@ -315,11 +273,11 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
                     return "button", "Gemns™ IoT Button"
             
             # Default fallback
-            return "unknown", "Gemns™ IoT Device"
+            return "unknown", advertisement_name(discovery_info)
             
         except Exception as e:
             print(f"Error extracting device info: {e}")
-            return "unknown", "Gemns™ IoT Device"
+            return "unknown", advertisement_name(discovery_info)
 
     async def async_step_import(self, import_data: dict[str, Any]) -> FlowResult:
         """Handle import from configuration.yaml."""

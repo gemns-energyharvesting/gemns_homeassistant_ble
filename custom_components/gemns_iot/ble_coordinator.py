@@ -23,6 +23,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
+from .ble_discovery import is_gemns_advertisement
 from .const import BLE_COMPANY_ID, CONF_ADDRESS, CONF_DECRYPTION_KEY
 from .packet_parser import parse_gems_packet
 
@@ -337,26 +338,28 @@ class GemnsBluetoothProcessorCoordinator(
         """Discover Gemns™ IoT devices and update the address if found."""
         try:
             _LOGGER.info("Discovering Gemns™ IoT devices...")
-            discovered_devices = async_discovered_service_info(self.hass)
+            discovered_devices = async_discovered_service_info(self.hass, connectable=False)
 
-            _LOGGER.info("Found %d total Bluetooth devices", len(discovered_devices))
-            for device in discovered_devices:
-                _LOGGER.info("Checking device: %s (%s)", device.name, device.address)
-                if self._is_gems_device(device):
-                    _LOGGER.info("Found Gemns™ IoT device: %s (%s)", device.name, device.address)
-                    # Update the config entry with the real MAC address
-                    new_data = self._entry.data.copy()
-                    new_data[CONF_ADDRESS] = device.address.upper()
-                    self.hass.config_entries.async_update_entry(self._entry, data=new_data)
-                    _LOGGER.info("Updated config entry with real MAC address: %s", device.address)
-
-                    # Update coordinator address dynamically
-                    await self._update_coordinator_address(device.address.upper())
-                    break
-            else:
-                _LOGGER.warning("No Gemns™ IoT devices found during discovery")
-                # Schedule another discovery attempt in 5 seconds
+            claimed_addresses = {
+                entry.data.get(CONF_ADDRESS, "").upper()
+                for entry in self.hass.config_entries.async_entries(self._entry.domain)
+                if entry.entry_id != self._entry.entry_id
+            }
+            candidates = {
+                device.address.upper()
+                for device in discovered_devices
+                if device.address.upper() not in claimed_addresses
+                and is_gemns_advertisement(device)
+            }
+            if len(candidates) != 1:
+                _LOGGER.debug("Expected one unclaimed Gemns device, found %d", len(candidates))
                 self.hass.async_create_task(self._schedule_next_discovery())
+                return
+
+            address = candidates.pop()
+            new_data = {**self._entry.data, CONF_ADDRESS: address}
+            self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+            await self._update_coordinator_address(address)
 
         except (ValueError, KeyError, AttributeError, TypeError) as e:
             _LOGGER.error("Discovery error: %s", e)
@@ -369,25 +372,6 @@ class GemnsBluetoothProcessorCoordinator(
         if self.address.startswith("gemns_discovery_"):
             _LOGGER.info("Retrying discovery...")
             await self._discover_and_update_address()
-
-    def _is_gems_device(self, discovery_info: BluetoothServiceInfo) -> bool:
-        """Check if this is a Gemns™ IoT device."""
-        # Check manufacturer data for Gemns™ IoT Company ID (22352)
-        if discovery_info.manufacturer_data:
-            for manufacturer_id, data in discovery_info.manufacturer_data.items():
-                _LOGGER.info("Checking manufacturer data: Company ID %d, Data length: %d", manufacturer_id, len(data))
-                if manufacturer_id == BLE_COMPANY_ID and len(data) >= 20:
-                    _LOGGER.info("Found Gemns™ IoT device by manufacturer data")
-                    return True
-
-        # Check name patterns as fallback
-        name = discovery_info.name or ""
-        _LOGGER.info("Checking device name: '%s'", name)
-        if any(pattern in name.upper() for pattern in ["GEMNS", "GEMS"]):
-            _LOGGER.info("Found Gemns™ IoT device by name pattern")
-            return True
-
-        return False
 
     async def _update_coordinator_address(self, new_address: str) -> None:
         """Update the coordinator's address dynamically."""

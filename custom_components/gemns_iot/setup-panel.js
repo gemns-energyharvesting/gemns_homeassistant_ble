@@ -13,7 +13,8 @@ class GemnsSetupPanel extends HTMLElement {
       </style>
       <h1>Gemns BLE setup</h1>
       <form>
-        <label>Device name <input name="device_name" required value="Gemns IoT Device"></label>
+        <div id="device-address" hidden></div>
+        <label>Device name <input name="device_name" placeholder="Use the detected device name"></label>
         <label>Device type
           <select name="device_type">
             <option value="1">Button</option>
@@ -22,13 +23,14 @@ class GemnsSetupPanel extends HTMLElement {
             <option value="4" selected>Leak Detector</option>
           </select>
         </label>
-        <label>Decryption key
+        <label>Network key
           <input name="decryption_key" type="text" required autocomplete="off" spellcheck="false"
             aria-describedby="key-hint">
         </label>
         <p id="key-hint">Enter 16 decimal numbers from 0 to 255 separated by single spaces.</p>
         <div class="actions">
           <button type="button" id="scan">Scan QR code</button>
+          <button type="button" id="close-scan" hidden>Close scanner</button>
           <button type="submit">Add device</button>
         </div>
         <p role="status" aria-live="polite"></p>
@@ -37,6 +39,12 @@ class GemnsSetupPanel extends HTMLElement {
     this.form = root.querySelector("form");
     this.key = this.form.elements.decryption_key;
     this.scanButton = root.querySelector("#scan");
+    this.closeScanButton = root.querySelector("#close-scan");
+    this.addressField = root.querySelector("#device-address");
+    this.closeScanButton.addEventListener("click", () => {
+      this.stopScan(true);
+      this.status.textContent = "Scanner closed.";
+    });
     this.submitButton = root.querySelector('button[type="submit"]');
     this.status = root.querySelector('[role="status"]');
     this.scanButton.addEventListener("click", () => this.scan());
@@ -103,14 +111,15 @@ class GemnsSetupPanel extends HTMLElement {
       this.status.textContent = "Key scanned. Select Add device to finish.";
     };
     window.externalBus = this.scanHandler;
+    this.closeScanButton.hidden = false;
     try {
       this.sendToApp({
         id: -1,
         type: "bar_code/scan",
         payload: {
           title: "Scan Gemns QR code",
-          description: "Scan the QR code containing your device decryption key.",
-          alternative_option_label: "Enter key manually",
+          description: "Scan the QR code containing your device network key.",
+          alternative_option_label: "Close scanner",
         },
       });
     } catch {
@@ -123,6 +132,7 @@ class GemnsSetupPanel extends HTMLElement {
     if (!this.scanHandler) return;
     if (window.externalBus === this.scanHandler) window.externalBus = this.previousHandler;
     this.scanHandler = undefined;
+    this.closeScanButton.hidden = true;
     this.previousHandler = undefined;
     if (close) {
       try {
@@ -131,6 +141,26 @@ class GemnsSetupPanel extends HTMLElement {
         // The Companion app bridge can disappear when the panel closes.
       }
     }
+  }
+
+  showAddressField(field) {
+    const label = document.createElement("label");
+    label.textContent = field.options ? "Bluetooth device" : "Bluetooth MAC address";
+    const control = document.createElement(field.options ? "select" : "input");
+    control.name = "address";
+    control.required = true;
+    if (field.options) {
+      control.add(new Option("Select a device", ""));
+      for (const [address, name] of field.options) {
+        control.add(new Option(name, address));
+      }
+    } else {
+      control.placeholder = "AA:BB:CC:DD:EE:FF";
+    }
+    label.append(control);
+    this.addressField.replaceChildren(label);
+    this.addressField.hidden = false;
+    return control;
   }
 
   async submit() {
@@ -154,7 +184,17 @@ class GemnsSetupPanel extends HTMLElement {
         throw new Error("Unexpected setup step");
       }
 
+      const field = flow.data_schema?.find((item) => item.name === "address");
+      let address = this.form.elements.address?.value;
+      if (field?.required && !address) {
+        this.showAddressField(field).focus();
+        this.status.textContent = "Choose a Bluetooth device or enter its MAC address.";
+        return;
+      }
+      if (!address) address = field?.default;
+
       const result = await hass.callApi("POST", `${path}/${flowId}`, {
+        ...(address && { address }),
         decryption_key: key,
         device_name: this.form.elements.device_name.value,
         device_type: this.form.elements.device_type.value,
@@ -162,11 +202,15 @@ class GemnsSetupPanel extends HTMLElement {
       if (result.type === "create_entry") {
         flowId = undefined;
         this.key.value = "";
+        this.addressField.replaceChildren();
+        this.addressField.hidden = true;
         this.status.textContent = "Device added.";
       } else if (result.type === "abort" && result.reason === "already_configured") {
         flowId = undefined;
-        this.status.textContent = "A device with that name is already configured.";
+        this.status.textContent = "This Bluetooth device is already configured.";
       } else {
+        const updatedField = result.data_schema?.find((item) => item.name === "address");
+        if (updatedField) this.showAddressField(updatedField);
         this.status.textContent = "Home Assistant could not add the device. Check the setup values and try again.";
       }
     } catch {
