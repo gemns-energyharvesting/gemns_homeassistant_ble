@@ -93,12 +93,19 @@ function addControls(step) {
   if (!form || controlsByStep.get(step)?.isConnected) return;
 
   const controls = document.createElement("div");
+  const row = document.createElement("div");
+  row.style.display = "flex";
+  row.style.alignItems = "center";
+  row.style.gap = "8px";
   const button = document.createElement("ha-button");
+  const manualHint = document.createElement("span");
+  manualHint.textContent = "OR enter manually below";
   const status = document.createElement("div");
   button.textContent = "Scan QR code";
   status.setAttribute("role", "status");
   button.addEventListener("click", () => scan(step, button, status));
-  controls.append(button, status);
+  row.append(button, manualHint);
+  controls.append(row, status);
   form.before(controls);
   controlsByStep.set(step, controls);
 }
