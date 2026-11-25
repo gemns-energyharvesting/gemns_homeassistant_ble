@@ -11,7 +11,6 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN, CONF_ADDRESS, CONF_DEVICE_TYPE
@@ -78,7 +77,8 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, config_entry.entry_id)},
             name=self._attr_name,
-            model=self._device_description(coordinator.data.get("device_type")),
+            manufacturer="WePower Technologies, LLC.",
+            model=self._device_model(coordinator.data.get("device_type")),
             sw_version=self.coordinator.data.get("firmware_version", "1.0.0"),
         )
         
@@ -135,11 +135,6 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
     async def async_added_to_hass(self) -> None:
         """Call when entity is added to hass."""
         await super().async_added_to_hass()
-        registry = dr.async_get(self.hass)
-        device = registry.async_get_device(identifiers={(DOMAIN, self.config_entry.entry_id)})
-        if device is not None and device.manufacturer == "Gemns™ IoT":
-            registry.async_update_device(device.id, manufacturer=None)
-
         # Register with coordinator to receive updates
         self._unsub_coordinator = self.coordinator.async_add_listener(self._handle_coordinator_update)
         # Set up cleanup when entity is removed
@@ -248,18 +243,6 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
             return models[device_type]
         return models.get(detected_type, "Batteryless IoT Device")
 
-    def _device_description(self, detected_type: str | None) -> str:
-        """Describe the device's purpose in Home Assistant's model line."""
-        model = self._device_model(detected_type)
-        descriptions = {
-            "Batteryless Leak Detector": "Detects water leaks",
-            "Batteryless Vibration Monitor": "Detects vibration",
-            "Batteryless Two-Way Switch": "Reports switch position",
-            "Batteryless Button": "Reports button presses",
-        }
-        description = descriptions.get(model)
-        return f"{model} · {description}" if description else model
-
     def _update_device_info(self) -> None:
         """Update device info with proper name and model."""
         device_type = self._device_type.lower()
@@ -278,7 +261,8 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.config_entry.entry_id)},
             name=self._attr_name,
-            model=self._device_description(device_type),
+            manufacturer="WePower Technologies, LLC.",
+            model=self._device_model(device_type),
             sw_version=self.coordinator.data.get("firmware_version", "1.0.0"),
             suggested_area=suggested_area,
         )
