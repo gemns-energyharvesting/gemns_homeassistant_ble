@@ -11,6 +11,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN, CONF_ADDRESS, CONF_DEVICE_TYPE
@@ -78,8 +79,7 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
             identifiers={(DOMAIN, config_entry.entry_id)},
             name=self._attr_name,
             manufacturer="WePower Technologies, LLC.",
-            model=self._device_model(coordinator.data.get("device_type")),
-            sw_version=self.coordinator.data.get("firmware_version", "1.0.0"),
+            model=f"Gemns™ {self._device_model(coordinator.data.get("device_type"))}",
         )
         
         # Initialize binary sensor properties
@@ -135,6 +135,11 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
     async def async_added_to_hass(self) -> None:
         """Call when entity is added to hass."""
         await super().async_added_to_hass()
+        registry = dr.async_get(self.hass)
+        device = registry.async_get_device(identifiers={(DOMAIN, self.config_entry.entry_id)})
+        if device is not None and device.sw_version is not None:
+            registry.async_update_device(device.id, sw_version=None)
+
         # Register with coordinator to receive updates
         self._unsub_coordinator = self.coordinator.async_add_listener(self._handle_coordinator_update)
         # Set up cleanup when entity is removed
@@ -262,8 +267,7 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
             identifiers={(DOMAIN, self.config_entry.entry_id)},
             name=self._attr_name,
             manufacturer="WePower Technologies, LLC.",
-            model=self._device_model(device_type),
-            sw_version=self.coordinator.data.get("firmware_version", "1.0.0"),
+            model=f"Gemns™ {self._device_model(device_type)}",
             suggested_area=suggested_area,
         )
         
