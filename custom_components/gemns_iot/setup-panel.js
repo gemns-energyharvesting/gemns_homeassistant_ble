@@ -10,8 +10,12 @@ class GemnsSetupPanel extends HTMLElement {
         input, select, button { font: inherit; padding: 8px; }
         .actions { display: flex; flex-wrap: wrap; gap: 8px; }
         p { margin: 0; }
+        header { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 480px; }
       </style>
-      <h1>Gemns BLE setup</h1>
+      <header>
+        <h1>Gemns BLE setup</h1>
+        <button type="button" id="close-setup">Close</button>
+      </header>
       <form>
         <div id="device-address" hidden></div>
         <label>Device name <input name="device_name" placeholder="Use the detected device name"></label>
@@ -27,7 +31,7 @@ class GemnsSetupPanel extends HTMLElement {
           <input name="decryption_key" type="text" required autocomplete="off" spellcheck="false"
             aria-describedby="key-hint">
         </label>
-        <p id="key-hint">Enter 16 decimal numbers from 0 to 255 separated by single spaces.</p>
+        <p id="key-hint">Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204.</p>
         <div class="actions">
           <button type="button" id="scan">Scan QR code</button>
           <button type="button" id="close-scan" hidden>Close scanner</button>
@@ -45,6 +49,8 @@ class GemnsSetupPanel extends HTMLElement {
       this.stopScan(true);
       this.status.textContent = "Scanner closed.";
     });
+    this.closeSetupButton = root.querySelector("#close-setup");
+    this.closeSetupButton.addEventListener("click", () => this.closeSetup());
     this.submitButton = root.querySelector('button[type="submit"]');
     this.status = root.querySelector('[role="status"]');
     this.scanButton.addEventListener("click", () => this.scan());
@@ -57,6 +63,12 @@ class GemnsSetupPanel extends HTMLElement {
   disconnectedCallback() {
     this.stopScan(true);
     if (this.key) this.key.value = "";
+  }
+
+  closeSetup() {
+    this.stopScan(true);
+    this.key.value = "";
+    window.location.replace("/config/integrations/dashboard");
   }
 
   validKey(value) {
@@ -166,7 +178,7 @@ class GemnsSetupPanel extends HTMLElement {
   async submit() {
     const key = this.key.value;
     if (!this.validKey(key)) {
-      this.status.textContent = "Enter 16 decimal numbers from 0 to 255 separated by single spaces.";
+      this.status.textContent = "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204.";
       this.key.focus();
       return;
     }
@@ -175,6 +187,7 @@ class GemnsSetupPanel extends HTMLElement {
     const path = "config/config_entries/flow";
     this.submitButton.disabled = true;
     this.scanButton.disabled = true;
+    this.closeSetupButton.disabled = true;
     this.status.textContent = "Adding device…";
     let flowId;
     try {
@@ -204,7 +217,7 @@ class GemnsSetupPanel extends HTMLElement {
         this.key.value = "";
         this.addressField.replaceChildren();
         this.addressField.hidden = true;
-        this.status.textContent = "Device added.";
+        this.closeSetup();
       } else if (result.type === "abort" && result.reason === "already_configured") {
         flowId = undefined;
         this.status.textContent = "This Bluetooth device is already configured.";
@@ -219,6 +232,7 @@ class GemnsSetupPanel extends HTMLElement {
       if (flowId) void hass.callApi("DELETE", `${path}/${flowId}`).catch(() => {});
       this.submitButton.disabled = false;
       this.scanButton.disabled = false;
+      this.closeSetupButton.disabled = false;
     }
   }
 }

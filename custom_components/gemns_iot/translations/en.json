@@ -3,9 +3,9 @@
     "step": {
       "ble": {
         "title": "Gemns™ IoT BLE Setup",
-        "description": "Enter the network key for your Gemns™ IoT device or open [Gemns BLE Setup](/gemns-setup) in the Home Assistant Companion app to scan a QR code.",
+        "description": "Enter the network key for your Gemns™ IoT device or [click here](/gemns-setup) to open the QR code scanner.",
         "data_description": {
-          "decryption_key": "Enter 16 decimal numbers from 0 to 255 separated by single spaces, for example 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255."
+          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204."
         },
         "data": {
           "decryption_key": "Network key",
@@ -18,7 +18,7 @@
         "title": "Configure {device_name}",
         "description": "{message}",
         "data_description": {
-          "decryption_key": "Enter 16 decimal numbers from 0 to 255 separated by single spaces, for example 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255."
+          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204."
         },
         "data": {
           "decryption_key": "Network key"
@@ -28,7 +28,7 @@
         "title": "Gemns™ IoT Configuration",
         "description": "Configure your Gemns™ IoT integration",
         "data_description": {
-          "decryption_key": "Enter 16 decimal numbers from 0 to 255 separated by single spaces, for example 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255."
+          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204."
         },
         "data": {
           "decryption_key": "Network key",
@@ -44,7 +44,7 @@
     },
     "error": {
       "invalid_ble_address": "Select a Bluetooth device or enter its MAC address.",
-      "invalid_decryption_key_format": "Enter 16 decimal numbers from 0 to 255 separated by single spaces.",
+      "invalid_decryption_key_format": "Enter the 16 decimal numbers from the device label, with a single space between each number.",
       "invalid_mqtt_broker": "Invalid MQTT broker URL. Must start with mqtt:// or mqtts://"
     },
     "abort": {

@@ -14,6 +14,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, FlowResult
 from homeassistant.const import CONF_ADDRESS, CONF_NAME
 from homeassistant.core import HomeAssistant
 import voluptuous as vol
+from homeassistant.helpers.selector import TextSelector, TextSelectorConfig
 
 from .const import DOMAIN, CONF_DECRYPTION_KEY, CONF_DEVICE_NAME, CONF_DEVICE_TYPE
 
@@ -26,7 +27,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_NAME): str,
         vol.Required(CONF_ADDRESS): str,
-        vol.Required(CONF_DECRYPTION_KEY): str,
+        vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
         vol.Optional(CONF_DEVICE_NAME): str,
         vol.Optional(CONF_DEVICE_TYPE, default=4): vol.In({
             "1": "Button",
@@ -39,7 +40,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 STEP_DISCOVERY_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_DECRYPTION_KEY): str,
+        vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
         vol.Optional(CONF_DEVICE_NAME): str,
         vol.Optional(CONF_DEVICE_TYPE, default=4): vol.In({
             "1": "Button",
@@ -197,7 +198,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             
             # Create device-specific schema
             schema = {
-                vol.Required(CONF_DECRYPTION_KEY): str,
+                vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
             }
             
             # Add device-specific description

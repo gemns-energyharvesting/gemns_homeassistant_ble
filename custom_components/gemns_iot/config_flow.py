@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.helpers.selector import TextSelector, TextSelectorConfig
 
 from homeassistant import config_entries
 from homeassistant.components.bluetooth import BluetoothServiceInfo, async_discovered_service_info
@@ -199,7 +200,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         schema = {
-            vol.Required(CONF_DECRYPTION_KEY): str,
+            vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
             vol.Optional(CONF_DEVICE_NAME): str,
             vol.Optional(CONF_DEVICE_TYPE, default="4"): vol.In({
                 "1": "Button",
