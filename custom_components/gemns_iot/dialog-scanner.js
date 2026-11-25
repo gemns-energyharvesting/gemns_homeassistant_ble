@@ -128,3 +128,19 @@ if (hasCompanionBridge()) {
     addToOpenDialogs(document);
   });
 }
+
+customElements.whenDefined("step-flow-create-entry").then((component) => {
+  const updated = component.prototype.updated;
+  component.prototype.updated = function (...args) {
+    updated.apply(this, args);
+    if (this.step?.result?.domain !== "gemns") return;
+
+    for (const areaPicker of this.shadowRoot?.querySelectorAll("ha-area-picker") ?? []) {
+      const nameField = areaPicker.previousElementSibling;
+      if (areaPicker.device && nameField?.device === areaPicker.device &&
+          nameField.matches("ha-input, ha-textfield")) {
+        nameField.style.display = "none";
+      }
+    }
+  };
+});

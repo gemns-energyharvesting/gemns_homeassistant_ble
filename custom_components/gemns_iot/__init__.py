@@ -14,7 +14,7 @@ from .device_management import GemnsDeviceManager
 from .coordinator import GemnsDataCoordinator
 from .ble_coordinator import GemnsBluetoothProcessorCoordinator
 
-from .setup_panel import async_register_setup_panel
+from .setup_frontend import async_register_setup_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,8 +31,8 @@ BLE_PLATFORMS: list[Platform] = [
 ]
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the Gemns setup panel when the integration loads."""
-    await async_register_setup_panel(hass)
+    """Register the Gemns setup dialog module when the integration loads."""
+    await async_register_setup_frontend(hass)
     return True
 
 

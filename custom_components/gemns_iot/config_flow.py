@@ -34,7 +34,7 @@ from .const import (
 
 from .ble_discovery import advertisement_name, is_gemns_advertisement
 from .decryption_key import parse_decryption_key
-from .setup_panel import async_register_setup_panel
+from .setup_frontend import async_register_setup_frontend
 
 _LOGGER = logging.getLogger(__name__)
 DISCOVERY_TIMEOUT_SECONDS = 300
@@ -76,7 +76,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # and restore the conditional logic in the rest of this method
         
         # Force BLE manual provisioning for now
-        await async_register_setup_panel(self.hass)
+        await async_register_setup_frontend(self.hass)
         return await self.async_step_ble()
         
         # MQTT OPTION (COMMENTED OUT - TO RE-ENABLE WHEN FIRMWARE IS READY):
@@ -176,7 +176,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(discovery_info.address.upper())
         self._abort_if_unique_id_configured()
         self._async_abort_entries_match({CONF_ADDRESS: discovery_info.address.upper()})
-        await async_register_setup_panel(self.hass)
+        await async_register_setup_frontend(self.hass)
         result = await self.async_step_ble()
         self._cancel_discovery_timeout = async_call_later(
             self.hass, DISCOVERY_TIMEOUT_SECONDS, self._async_expire_discovery

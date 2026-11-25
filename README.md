@@ -26,17 +26,13 @@ A comprehensive Home Assistant integration for managing Gemns™ battery-less BL
 
 ## Usage
 
-### Gemns BLE setup panel
+### Gemns BLE setup
 
-After installing or updating the integration, restart Home Assistant. For
-first-time setup, open **Settings → Devices & Services → Add Integration →
-Gemns**, then follow the **Gemns BLE Setup** link in the setup form. The
-panel also appears in the sidebar for administrators.
-
-In the Home Assistant Companion app, choose a device name and type, then
-select **Scan QR code** or enter the **Network key** manually. Select
-**Add device** and choose the Bluetooth device if more than one is found.
-If none is found, enter the device’s Bluetooth MAC address.
+Open **Settings → Devices & Services → Add Integration → Gemns**. Enter
+the **Network key** manually or use **Scan QR code** in the Home Assistant
+Companion app. Choose a device type and select **Submit**. If several
+Bluetooth devices are found, select yours. If none are found, enter its
+Bluetooth MAC address.
 
 The QR code must contain the key as plain text, with exactly 16 decimal
 numbers from 0 to 255 separated by single spaces. For example:
