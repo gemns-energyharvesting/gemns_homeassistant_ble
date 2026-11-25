@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.helpers.selector import TextSelector, TextSelectorConfig
 
 from homeassistant import config_entries
 from homeassistant.components.bluetooth import BluetoothServiceInfo, async_discovered_service_info
@@ -38,7 +37,7 @@ from .decryption_key import parse_decryption_key
 from .setup_panel import async_register_setup_panel
 
 _LOGGER = logging.getLogger(__name__)
-DISCOVERY_TIMEOUT_SECONDS = 120
+DISCOVERY_TIMEOUT_SECONDS = 300
 
 
 class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -230,7 +229,7 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         schema = {
-            vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
+            vol.Required(CONF_DECRYPTION_KEY): str,
             vol.Optional(CONF_DEVICE_NAME): str,
             vol.Required(CONF_DEVICE_TYPE): vol.In({
                 "4": "Leak Detector",
