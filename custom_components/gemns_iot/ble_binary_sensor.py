@@ -258,9 +258,6 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         }
         suggested_area = area_map.get(device_type, "Home")
         
-        # Set device image based on device type
-        device_image = self._get_device_image(device_type)
-        
         # Update device info
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.config_entry.entry_id)},
@@ -271,9 +268,6 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
             suggested_area=suggested_area,
         )
         
-        # Set device image if available
-        if device_image:
-            self._attr_device_info["image"] = device_image
 
     def _get_professional_device_id(self) -> str:
         """Generate a professional device identifier from MAC address."""
@@ -295,19 +289,6 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         # Convert to a more professional format
         device_number = int(last_6, 16) % 1000  # Get a number between 0-999
         return f"Unit-{device_number:03d}"
-    
-    def _get_device_image(self, device_type: str) -> str:
-        """Get device image URL based on device type."""
-        # Map device types to their corresponding image paths
-        image_map = {
-            "leak_detector": "/local/custom_components/gemns/static/icon.png",
-            "vibration_sensor": "/local/custom_components/gemns/static/icon.png", 
-            "two_way_switch": "/local/custom_components/gemns/static/icon.png",
-            "button": "/local/custom_components/gemns/static/icon.png",
-            "legacy": "/local/custom_components/gemns/static/icon.png",
-        }
-        
-        return image_map.get(device_type.lower(), "/local/custom_components/gemns/static/icon.png")
             
     def _extract_binary_sensor_value(self, data: Dict[str, Any]) -> None:
         """Extract binary sensor value from coordinator data."""

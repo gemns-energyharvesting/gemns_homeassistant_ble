@@ -318,9 +318,6 @@ class GemnsBLESensor(SensorEntity):
         
         model = model_map.get(device_type, "IoT Sensor")
         
-        # Set device image based on device type
-        device_image = self._get_device_image(device_type)
-        
         # Update device info
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.address)},
@@ -330,26 +327,6 @@ class GemnsBLESensor(SensorEntity):
             sw_version=self.coordinator.data.get("firmware_version", "1.0.0"),
         )
         
-        # Set device image if available
-        if device_image:
-            self._attr_device_info["image"] = device_image
-    
-    def _get_device_image(self, device_type: str) -> str:
-        """Get device image URL based on device type."""
-        # Map device types to their corresponding image paths
-        image_map = {
-            "temperature_sensor": "/local/custom_components/gemns/static/icon.png",
-            "humidity_sensor": "/local/custom_components/gemns/static/icon.png", 
-            "pressure_sensor": "/local/custom_components/gemns/static/icon.png",
-            "vibration_sensor": "/local/custom_components/gemns/static/icon.png",
-            "leak_detector": "/local/custom_components/gemns/static/icon.png",
-            "on_off_switch": "/local/custom_components/gemns/static/icon.png",
-            "light_switch": "/local/custom_components/gemns/static/icon.png",
-            "door_switch": "/local/custom_components/gemns/static/icon.png",
-            "toggle_switch": "/local/custom_components/gemns/static/icon.png",
-        }
-        
-        return image_map.get(device_type.lower(), "/local/custom_components/gemns/static/icon.png")
             
     def _extract_sensor_value(self, data: Dict[str, Any]) -> None:
         """Extract sensor value from coordinator data."""

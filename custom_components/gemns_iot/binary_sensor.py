@@ -75,7 +75,6 @@ class GemnsBLESensor(BinarySensorEntity):
             model="BLE Dongle",
             sw_version=device.get("firmware_version", "1.0.0"),
             configuration_url=f"https://github.com/manaam216/gemns_integration/blob/main/README.md",
-            image="/local/gemns/ble_dongle.png",
         )
         
         # Set custom icon for BLE dongle
@@ -150,7 +149,6 @@ class GemnsZigbeeSensor(BinarySensorEntity):
             model="Zigbee Dongle",
             sw_version=device.get("firmware_version", "1.0.0"),
             configuration_url=f"https://github.com/manaam216/gemns_integration/blob/main/README.md",
-            image="/local/gemns/zigbee_dongle.png",
         )
         
         # Set custom icon for Zigbee dongle
