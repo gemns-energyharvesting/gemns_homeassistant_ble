@@ -11,9 +11,10 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .const import DOMAIN, CONF_ADDRESS, CONF_DEVICE_TYPE
 from .ble_coordinator import GemnsBluetoothProcessorCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         # Don't store address statically - get it dynamically from config data
         
         # Set up basic entity properties
-        self._attr_name = config_entry.data.get(CONF_NAME, "Gemns™ IoT Device")
+        self._attr_name = self._sensor_name(coordinator.data.get("device_type"))
         self._attr_unique_id = f"{DOMAIN}_{config_entry.entry_id}_binary"
         self._attr_should_poll = False
         
@@ -77,8 +78,7 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, config_entry.entry_id)},
             name=self._attr_name,
-            manufacturer="Gemns™ IoT",
-            model="Batteryless IoT Device",  # Generic model, will be updated
+            model=self._device_description(coordinator.data.get("device_type")),
             sw_version=self.coordinator.data.get("firmware_version", "1.0.0"),
         )
         
@@ -135,6 +135,11 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
     async def async_added_to_hass(self) -> None:
         """Call when entity is added to hass."""
         await super().async_added_to_hass()
+        registry = dr.async_get(self.hass)
+        device = registry.async_get_device(identifiers={(DOMAIN, self.config_entry.entry_id)})
+        if device is not None and device.manufacturer == "Gemns™ IoT":
+            registry.async_update_device(device.id, manufacturer=None)
+
         # Register with coordinator to receive updates
         self._unsub_coordinator = self.coordinator.async_add_listener(self._handle_coordinator_update)
         # Set up cleanup when entity is removed
@@ -169,14 +174,9 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         data = self.coordinator.data
         _LOGGER.info("UPDATING BINARY SENSOR: %s | Coordinator data: %s", self.address, data)
         
-        # Update device type and name from coordinator data
         self._device_type = data.get("device_type", "unknown")
-        coordinator_name = data.get("name", "Gemns™ IoT Device")
-        
-        # Update the entity name if coordinator has a better name
-        if coordinator_name != "Gemns™ IoT Device":
-            self._attr_name = coordinator_name
-        
+        self._attr_name = self._sensor_name(self._device_type)
+
         _LOGGER.info("DEVICE TYPE: %s | Type: %s | Name: %s", self.address, self._device_type, self._attr_name)
         
         # Set sensor properties based on device type
@@ -201,52 +201,68 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         if device_type == "leak_detector":
             # DEVICE_TYPE_LEAK_SENSOR = 4 - moisture device class
             self._attr_device_class = BinarySensorDeviceClass.MOISTURE
-            self._attr_name = f"Gemns™ IoT Leak Detector {self._get_professional_device_id()}"
             self._attr_icon = "mdi:water"
             
         elif device_type == "vibration_sensor":
             # DEVICE_TYPE_VIBRATION_MONITOR = 2 - vibration device class
             self._attr_device_class = BinarySensorDeviceClass.VIBRATION
-            self._attr_name = f"Gemns™ IoT Vibration Monitor {self._get_professional_device_id()}"
             self._attr_icon = "mdi:vibrate"
             
         elif device_type == "two_way_switch":
             # DEVICE_TYPE_TWO_WAY_SWITCH = 3 - opening device class (on/off)
             self._attr_device_class = BinarySensorDeviceClass.OPENING
-            self._attr_name = f"Gemns™ IoT Two-Way Switch {self._get_professional_device_id()}"
             self._attr_icon = "mdi:toggle-switch"
             
         elif device_type in ["button", "legacy"]:
             # DEVICE_TYPE_BUTTON = 1, DEVICE_TYPE_LEGACY = 0 - problem device class
             self._attr_device_class = BinarySensorDeviceClass.PROBLEM
             if device_type == "button":
-                self._attr_name = f"Gemns™ IoT Button {self._get_professional_device_id()}"
                 self._attr_icon = "mdi:gesture-tap-button"
             else:  # legacy
-                self._attr_name = f"Gemns™ IoT Legacy Device {self._get_professional_device_id()}"
                 self._attr_icon = "mdi:chip"
             
         else:
             # Unknown device type - generic binary sensor
             self._attr_device_class = BinarySensorDeviceClass.PROBLEM
-            self._attr_name = f"Gemns™ IoT Alert {self._get_professional_device_id()}"
             self._attr_icon = "mdi:alert"
+
+    def _device_model(self, detected_type: str | None) -> str:
+        """Use the configured device type for stable device registry metadata."""
+        configured_types = {
+            "0": "legacy",
+            "1": "button",
+            "2": "vibration_sensor",
+            "3": "two_way_switch",
+            "4": "leak_detector",
+        }
+        models = {
+            "legacy": "Batteryless Legacy Device",
+            "button": "Batteryless Button",
+            "vibration_sensor": "Batteryless Vibration Monitor",
+            "two_way_switch": "Batteryless Two-Way Switch",
+            "leak_detector": "Batteryless Leak Detector",
+        }
+        configured_type = str(self.config_entry.data.get(CONF_DEVICE_TYPE, "")).lower()
+        device_type = configured_types.get(configured_type, configured_type)
+        if device_type in models:
+            return models[device_type]
+        return models.get(detected_type, "Batteryless IoT Device")
+
+    def _device_description(self, detected_type: str | None) -> str:
+        """Describe the device's purpose in Home Assistant's model line."""
+        model = self._device_model(detected_type)
+        descriptions = {
+            "Batteryless Leak Detector": "Detects water leaks",
+            "Batteryless Vibration Monitor": "Detects vibration",
+            "Batteryless Two-Way Switch": "Reports switch position",
+            "Batteryless Button": "Reports button presses",
+        }
+        description = descriptions.get(model)
+        return f"{model} · {description}" if description else model
 
     def _update_device_info(self) -> None:
         """Update device info with proper name and model."""
         device_type = self._device_type.lower()
-        
-        # Set model based on device type (matching device_type_t enum)
-        model_map = {
-            "legacy": "Batteryless Legacy Device",           # DEVICE_TYPE_LEGACY = 0
-            "button": "Batteryless Button",                  # DEVICE_TYPE_BUTTON = 1  
-            "vibration_sensor": "Batteryless Vibration Monitor", # DEVICE_TYPE_VIBRATION_MONITOR = 2
-            "two_way_switch": "Batteryless Two-Way Switch",  # DEVICE_TYPE_TWO_WAY_SWITCH = 3
-            "leak_detector": "Batteryless Leak Detector",        # DEVICE_TYPE_LEAK_SENSOR = 4
-            "unknown_device": "Batteryless IoT Device"
-        }
-        
-        model = model_map.get(device_type, "IoT Sensor")
         
         # Set suggested area based on device type
         area_map = {
@@ -262,34 +278,26 @@ class GemnsBLEBinarySensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.config_entry.entry_id)},
             name=self._attr_name,
-            manufacturer="Gemns™ IoT",
-            model=model,
+            model=self._device_description(device_type),
             sw_version=self.coordinator.data.get("firmware_version", "1.0.0"),
             suggested_area=suggested_area,
         )
         
 
-    def _get_professional_device_id(self) -> str:
-        """Generate a professional device identifier from MAC address."""
-        # Handle test/discovery addresses
-        if self.address.startswith("gemns_") or self.address == "00:00:00:00:00:00":
-            # For test devices, use entry ID to generate a consistent ID
-            entry_id = self.config_entry.entry_id
-            # Extract numbers from entry ID or use a hash
-            import hashlib
-            hash_obj = hashlib.md5(entry_id.encode())
-            hash_hex = hash_obj.hexdigest()
-            device_number = int(hash_hex[:3], 16) % 1000
-            return f"Test-{device_number:03d}"
-        
-        # Remove colons and get last 6 characters
-        clean_address = self.address.replace(":", "").upper()
-        last_6 = clean_address[-6:]
-        
-        # Convert to a more professional format
-        device_number = int(last_6, 16) % 1000  # Get a number between 0-999
-        return f"Unit-{device_number:03d}"
-            
+    def _sensor_name(self, detected_type: str | None) -> str:
+        """Include the device type and a short Bluetooth identifier."""
+        model = self._device_model(detected_type).removeprefix("Batteryless ")
+        label = "Gemns™ IoT" if model == "IoT Device" else f"Gemns™ IoT {model}"
+        address = (self.address or "").replace(":", "")
+        if len(address) != 12 or address == "000000000000":
+            return label
+
+        try:
+            number = int(address[-6:], 16) % 1000
+        except ValueError:
+            return label
+        return f"{label} - {number:03d}"
+
     def _extract_binary_sensor_value(self, data: Dict[str, Any]) -> None:
         """Extract binary sensor value from coordinator data."""
         _LOGGER.info("EXTRACTING BINARY SENSOR VALUE: %s | Data: %s", self.address, data)
