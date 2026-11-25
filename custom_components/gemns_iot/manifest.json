@@ -24,7 +24,7 @@
       "connectable": false
     }
   ],
-  "codeowners": ["@gems"],
+  "codeowners": ["@gemns"],
   "config_flow": true,
   "dependencies": ["bluetooth"],
   "documentation": "https://github.com/manaam216/gemns_integration/blob/main/README.md",
