@@ -29,11 +29,11 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_ADDRESS): str,
         vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
         vol.Optional(CONF_DEVICE_NAME): str,
-        vol.Optional(CONF_DEVICE_TYPE, default=4): vol.In({
+        vol.Required(CONF_DEVICE_TYPE): vol.In({
+            "4": "Leak Detector",
             "1": "Button",
-            "2": "Vibration Monitor", 
+            "2": "Vibration Monitor",
             "3": "Two Way Switch",
-            "4": "Leak Detector"
         }),
     }
 )
@@ -42,11 +42,11 @@ STEP_DISCOVERY_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
         vol.Optional(CONF_DEVICE_NAME): str,
-        vol.Optional(CONF_DEVICE_TYPE, default=4): vol.In({
+        vol.Required(CONF_DEVICE_TYPE): vol.In({
+            "4": "Leak Detector",
             "1": "Button",
-            "2": "Vibration Monitor", 
+            "2": "Vibration Monitor",
             "3": "Two Way Switch",
-            "4": "Leak Detector"
         }),
     }
 )
@@ -70,7 +70,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             name = user_input[CONF_NAME]
             decryption_key = user_input[CONF_DECRYPTION_KEY]
             device_name = user_input.get(CONF_DEVICE_NAME, name)
-            device_type = int(user_input.get(CONF_DEVICE_TYPE, "4"))  # Convert string to int, default to leak detector
+            device_type = int(user_input[CONF_DEVICE_TYPE])
             
             # Validate network key format
             try:
@@ -102,7 +102,7 @@ class GemnsBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             description_placeholders={
-                "message": "Manually provision a Gemns™ IoT device by entering its MAC address and network key.\n\nDevice Types:\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n• Type 4: Leak Detector\n\nNetwork key: 16 decimal numbers from 0 to 255 separated by single spaces. Example: 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255",
+                "message": "Manually provision a Gemns™ IoT device by entering its MAC address and network key.\n\nDevice Types:\n• Type 4: Leak Detector\n• Type 1: Button\n• Type 2: Vibration Monitor\n• Type 3: Two Way Switch\n\nNetwork key: 16 decimal numbers from 0 to 255 separated by single spaces. Example: 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255",
                 "integration_icon": "/local/custom_components/gemns/static/icon.png"
             }
         )

@@ -3,9 +3,10 @@
     "step": {
       "ble": {
         "title": "Gemns™ IoT BLE Setup",
-        "description": "Enter the network key for your Gemns™ IoT device or [click here](/gemns-setup) to open the QR code scanner.",
+        "description": "Enter the network key for your Gemns™ IoT device or [click here](/gemns-setup) to open the QR code scanner (accessible only in the Home Assistant mobile app).",
         "data_description": {
-          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204."
+          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204",
+          "device_name": "Choose a name to identify this device on your network."
         },
         "data": {
           "decryption_key": "Network key",
@@ -18,7 +19,7 @@
         "title": "Configure {device_name}",
         "description": "{message}",
         "data_description": {
-          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204."
+          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204"
         },
         "data": {
           "decryption_key": "Network key"
@@ -28,7 +29,7 @@
         "title": "Gemns™ IoT Configuration",
         "description": "Configure your Gemns™ IoT integration",
         "data_description": {
-          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204."
+          "decryption_key": "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204"
         },
         "data": {
           "decryption_key": "Network key",

@@ -18,20 +18,24 @@ class GemnsSetupPanel extends HTMLElement {
       </header>
       <form>
         <div id="device-address" hidden></div>
-        <label>Device name <input name="device_name" placeholder="Use the detected device name"></label>
+        <label>Device name
+          <input name="device_name" placeholder="Use the detected device name" aria-describedby="device-name-hint">
+          <span id="device-name-hint">Choose a name to identify this device on your network.</span>
+        </label>
         <label>Device type
-          <select name="device_type">
+          <select name="device_type" required>
+            <option value="" selected disabled>Select a device type</option>
+            <option value="4">Leak Detector</option>
             <option value="1">Button</option>
             <option value="2">Vibration Monitor</option>
             <option value="3">Two Way Switch</option>
-            <option value="4" selected>Leak Detector</option>
           </select>
         </label>
         <label>Network key
           <input name="decryption_key" type="text" required autocomplete="off" spellcheck="false"
             aria-describedby="key-hint">
         </label>
-        <p id="key-hint">Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204.</p>
+        <p id="key-hint">Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204</p>
         <div class="actions">
           <button type="button" id="scan">Scan QR code</button>
           <button type="button" id="close-scan" hidden>Close scanner</button>
@@ -178,7 +182,7 @@ class GemnsSetupPanel extends HTMLElement {
   async submit() {
     const key = this.key.value;
     if (!this.validKey(key)) {
-      this.status.textContent = "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204.";
+      this.status.textContent = "Enter the 16 decimal numbers from the device label, with a space between each number. For example: 0 17 115 132 16 34 51 68 85 102 119 136 153 170 187 204";
       this.key.focus();
       return;
     }

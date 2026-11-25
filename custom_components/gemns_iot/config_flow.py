@@ -195,18 +195,18 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_ADDRESS: address,
                         CONF_DECRYPTION_KEY: key_hex,
                         CONF_DEVICE_NAME: device_name,
-                        CONF_DEVICE_TYPE: int(user_input.get(CONF_DEVICE_TYPE, "4")),
+                        CONF_DEVICE_TYPE: int(user_input[CONF_DEVICE_TYPE]),
                     },
                 )
 
         schema = {
             vol.Required(CONF_DECRYPTION_KEY): TextSelector(TextSelectorConfig(autocomplete="off")),
             vol.Optional(CONF_DEVICE_NAME): str,
-            vol.Optional(CONF_DEVICE_TYPE, default="4"): vol.In({
+            vol.Required(CONF_DEVICE_TYPE): vol.In({
+                "4": "Leak Detector",
                 "1": "Button",
                 "2": "Vibration Monitor",
                 "3": "Two Way Switch",
-                "4": "Leak Detector",
             }),
         }
         if discovered_device is None:
