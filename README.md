@@ -11,49 +11,35 @@ A comprehensive Home Assistant integration for managing Gemns™ battery-less BL
 
 ## Installation
 
-### Option 1: HACS (Recommended)
-1. Install [HACS](https://hacs.xyz/)
-2. Add this repository as a custom repository
-3. Install "Gemns IoT" integration
-4. Restart Home Assistant
+### Home Assistant Marketplace (2026.11 or later)
 
-### Option 2: Manual Installation
-1. Copy the `integration` folder to your `config/custom_components/` directory
-2. Restart Home Assistant
-3. Go to **Settings** → **Devices & Services** → **Integrations**
-4. Click **+ Add Integration** and search for "Gemns IoT"
+1. Sign in to Home Assistant as an administrator and open **Settings → Marketplace**. Review and accept the community-content notice if prompted.
+2. Select **Add from link** in the upper-right corner.
+3. If prompted to connect GitHub, select **Continue**, open the GitHub link, enter the displayed code, and approve the connection. Return to Home Assistant.
+4. In **GitHub link**, enter `https://github.com/gemns-energyharvesting/gemns_homeassistant_ble` and select **Add**. If Marketplace asks for a **Type**, choose **Integration** and select **Add** again.
+5. Open **Gemns IoT** in Marketplace. Select **Install**, review the version, and select **Install** again to confirm.
+6. If the Gemns setup form opens, follow the steps below. If Home Assistant requests a restart, use **Settings → System → Repairs**, then open the setup form under **Settings → Devices & services**.
 
+See the [official Home Assistant Marketplace guide](https://www.home-assistant.io/integrations/marketplace/#custom-repositories) for help adding a repository or connecting GitHub.
 
-## Usage
+### Manual installation
 
-### Gemns BLE setup
+1. Download the repository ZIP from GitHub and extract it.
+2. Copy the repository’s `custom_components/gemns_iot` folder into Home Assistant’s `/config/custom_components/` directory and name the copied folder `gemns`. The resulting manifest path should be `/config/custom_components/gemns/manifest.json`.
+3. Restart Home Assistant and follow the setup steps below.
 
-Open **Settings → Devices & Services → Add Integration → Gemns**. Enter
-the **Network key** manually or use **Scan QR code** in the Home Assistant
-Companion app. Choose a device type and select **Submit**. If several
-Bluetooth devices are found, select yours. If none are found, enter its
-Bluetooth MAC address.
+## Set up a Gemns BLE device
 
-The QR code must contain the key as plain text, with exactly 16 decimal
-numbers from 0 to 255 separated by single spaces. For example:
+1. Open **Settings → Devices & services**. If Gemns appears under **Discovered**, select **Add** on its card. Otherwise, select **Add integration** and search for **Gemns**.
+2. Enter the **Network key** from the device label. In the Home Assistant Companion app, you can select **Scan QR code** to fill it in.
+3. Choose the **Device type**. If several Bluetooth devices are listed, select yours. If Home Assistant hasn’t found the device and asks for its address, enter its Bluetooth MAC address.
+4. Select **Submit**. If Home Assistant offers to assign an area, select one or choose **Skip and finish**.
+
+A manually entered key contains exactly 16 decimal numbers from 0 to 255 with one space between each number. Example:
 
 ```text
 0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255
 ```
-
-### Adding Devices
-
-#### Automatic Discovery
-- Devices are automatically discovered when connected to BLE dongles
-
-#### Manual Device Addition
-1. Go to **Settings** → **Devices & Services** → **Gemns IoT**
-2. Click **Add Device**
-3. Fill in the device information:
-   - **Device ID**: Unique identifier
-   - **Device Name**: Display name
-   - **Category**: Sensor, Switch, Light, Door, or Toggle
-   - **BLE Discovery Mode**: V1 Auto (for BLE devices)
 
 ## Device Status
 

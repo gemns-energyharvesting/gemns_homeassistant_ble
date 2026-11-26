@@ -4,12 +4,19 @@ import logging
 import re
 from collections.abc import Callable
 from datetime import datetime
+from time import monotonic
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components.bluetooth import BluetoothServiceInfo, async_discovered_service_info
+from homeassistant.components.bluetooth import (
+    BluetoothChange,
+    BluetoothScanningMode,
+    BluetoothServiceInfo,
+    async_discovered_service_info,
+    async_register_callback,
+)
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME, CONF_NAME, CONF_ADDRESS
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult, UnknownFlow
@@ -48,6 +55,8 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._cancel_discovery_timeout: Callable[[], None] | None = None
+        self._unsubscribe_discovery: Callable[[], None] | None = None
+        self._last_discovery_advertisement = 0.0
 
     @callback
     def async_remove(self) -> None:
@@ -55,11 +64,31 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._cancel_discovery_timeout is not None:
             self._cancel_discovery_timeout()
             self._cancel_discovery_timeout = None
+        if self._unsubscribe_discovery is not None:
+            self._unsubscribe_discovery()
+            self._unsubscribe_discovery = None
         super().async_remove()
 
     @callback
+    def _async_record_discovery_advertisement(
+        self, service_info: BluetoothServiceInfo, _change: BluetoothChange
+    ) -> None:
+        """Record a recent Gemns advertisement from this device."""
+        if is_gemns_advertisement(service_info):
+            self._last_discovery_advertisement = monotonic()
+
+    @callback
     def _async_expire_discovery(self, _now: datetime) -> None:
-        """Remove the unconfigured device from Discovered."""
+        """Remove the discovery card after five minutes of Bluetooth silence."""
+        remaining = DISCOVERY_TIMEOUT_SECONDS - (
+            monotonic() - self._last_discovery_advertisement
+        )
+        if remaining > 0:
+            self._cancel_discovery_timeout = async_call_later(
+                self.hass, remaining, self._async_expire_discovery
+            )
+            return
+
         self._cancel_discovery_timeout = None
         try:
             self.hass.config_entries.flow.async_abort(self.flow_id)
@@ -178,6 +207,13 @@ class GemnsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._async_abort_entries_match({CONF_ADDRESS: discovery_info.address.upper()})
         await async_register_setup_frontend(self.hass)
         result = await self.async_step_ble()
+        self._last_discovery_advertisement = monotonic()
+        self._unsubscribe_discovery = async_register_callback(
+            self.hass,
+            self._async_record_discovery_advertisement,
+            {"address": discovery_info.address, "connectable": False},
+            BluetoothScanningMode.PASSIVE,
+        )
         self._cancel_discovery_timeout = async_call_later(
             self.hass, DISCOVERY_TIMEOUT_SECONDS, self._async_expire_discovery
         )
